@@ -3,7 +3,7 @@ import requests
 import time
 
 input_csv = 'deck.csv'
-output_txt = 'deck_fixed.txt'
+output_csv = 'deck_fixed.csv'
 
 scryfall_api_url = 'https://api.scryfall.com/cards/mtgo/'
 headers = {
@@ -12,7 +12,7 @@ headers = {
 }
 
 
-def fetch_card_data(mtgo_id):
+def fetch_card_data(mtgo_id: str | int):
     url = f'{scryfall_api_url}{mtgo_id}'
     response = requests.get(url, headers=headers)
     time.sleep(0.075)
@@ -21,7 +21,7 @@ def fetch_card_data(mtgo_id):
     return None, False
 
 
-def try_with_fallback(mtgo_id):
+def try_with_fallback(mtgo_id: str):
     card_data, fallback = fetch_card_data(mtgo_id)
     if card_data:
         return card_data, fallback
@@ -35,11 +35,12 @@ def try_with_fallback(mtgo_id):
     return None, False
 
 
-def process_csv(input_csv, output_txt):
+def process_csv(input_csv: str, output_csv: str):
     with open(input_csv, mode='r', newline='', encoding='utf-8') as csv_file:
         reader = csv.DictReader(csv_file)
 
-        with open(output_txt, mode='w', encoding='utf-8') as output_file:
+        with open(output_csv, mode='w', encoding='utf-8') as output_file:
+            output_file.write('"Count","Name","Edition","Condition","Language","Foil","Collector Number","Alter","Playtest Card","Purchase Price"\n')
             for row in reader:
                 quantity = row.get('Quantity', '').strip()
                 card_name = row.get('Card Name', '').strip()
@@ -64,14 +65,15 @@ def process_csv(input_csv, output_txt):
                 else:
                     raw_collector = row.get('Collector #', '').strip()
                     collector_number = raw_collector.split('/')[0]
-
-                line = f"{quantity} {card_name} ({set_name}) {collector_number}"
-                if fallback_flag or premium:
-                    line += " *F*"
+                
+                # Format output line
+                # "Count","Name","Edition","Condition","Language","Foil","Collector Number","Alter","Playtest Card","Purchase Price"
+                is_foil = "F" if fallback_flag or premium else ""
+                line = f"\"{quantity}\",\"{card_name}\",\"{set_name.lower()}\",\"M\",\"en\",\"{is_foil}\",\"{collector_number}\""
 
                 output_file.write(line + '\n')
 
-    print(f"Deck fixed and saved to {output_txt}")
+    print(f"Deck fixed and saved to {output_csv}")
 
 
-process_csv(input_csv, output_txt)
+process_csv(input_csv, output_csv)
